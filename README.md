@@ -10,6 +10,7 @@ This modular design enables efficient transfer from a generic English-trained mo
 
 While **AdapterTrOCR** is designed to work for Latin, it can be trained on different HTR datasets, and its modular structure allows the removal or addition of adapter components based on the specifics of the HTR task.
 
+---
  ## Instalation
  Create and activate a virtual environment
  ```
@@ -20,7 +21,7 @@ Install the required libraries
 ```
 pip install -r requirements.txt
 ```
-
+---
 ## Data
 
 Magister Dixit is a large collection of 575 Latin manuscripts containing student notes from the 16th to the 18th centuries. To capture the wide range of writing styles, we are building a dataset that covers 25-year intervals within this period. For the interval 1600-1675 we do not have data collected and for the interval 1524-1549 we do not have manuscripts. In total, our data covers 8 25-year intervals.
@@ -74,7 +75,7 @@ python extract_data.py \
 --text_path="extracted_data/text" \
 --json_file="extracted_data/json_file.json"
 ```
-
+---
 ## Training procedure
 
 To train **AdapterTrOCR** and its adapter structures we rely on both ground-truth data (see Section Data) and synthetic data generated. The artificial data is produced using our model **DiffWord**, a diffusion-based approach for Handwritten Text Generation (HTG). More details are provided [here](https://github.com/studium-ai/DiffWord).
@@ -157,3 +158,74 @@ python cli.py \
 --language_ability_latin='language_ability_latin' \
 --model_style_path='style_adapters/model_interval'
 ```
+---
+## Magister Dixit: Transcription Generation
+
+#### Step 1: Download the data
+
+*  Download the dataset (171 GB) using the command below.  
+   All manuscripts will be saved separately in the specified `save_path`.
+* The file `dataset_xls` contains metadata about the manuscripts.  
+   It is currently available via Globus.
+```
+python globus.py \
+--client_id='Your_Globus_client_ID' \
+--id_source='UUID_source_collection' \
+--id_target='UUID_target_collection' \
+--dataset_xls="dataset_1.xlsx" \
+--save_path='magister_dixit' \
+--globus_data_path="/DATASET_1" 
+```
+
+#### Step 2: Segment the Scanned Images into Lines
+
+* To do this, you need to either:
+
+    * Download the fine-tuned YOLOv11 model for line detection (available [here]), or  
+    * Fine-tune a new model by following the instructions in `train_segmentation.py`.
+
+* `output_path_pdf` specifies the path where all scanned images containing writing lines are merged into a single PDF.  
+  Use this argument only if you plan to upload the data to Transkribus.  
+  *Note: Transkribus currently supports uploads of documents with no more than 200 images.*
+```
+python segment.py \
+--images_path='magister_dixit' \
+--save_path='magister_dixit_segment' \
+--model_path='YOLOv11_model_path' \
+--output_path_pdf='pdf_file'
+```
+
+3. Generate transcriptions for the extracted lines
+
+#### Step 4: Store Line Coordinates and Transcriptions as XML
+
+* The coordinates of the line images (polygons) and their corresponding transcriptions are stored in XML format.  
+
+* If you use the argument `upload_transkribus`, the XML files will be adjusted for upload to Transkribus. In this case, the line coordinates are resized to match the A4 format.
+
+```
+python create_xml.py \
+--images_path='magister_dixit' \
+--save_path='magister_dixit_xml' \
+--segmentation_path='magister_dixit_segment' \
+--dataset_name="dataset_1.xlsx" \
+--upload_transkirbus=1
+```
+#### Step 5 (Optional): Upload XML Files to Transkribus
+
+1. First, upload the generated PDF with the scanned images.  
+2. Then, run the command below to upload the corresponding XML files.
+
+* To find the required `collection_id` and `document_id` arguments, check the URL of the created collection in Transkribus:  
+  `https://app.transkribus.org/collection/collection_id/doc/document_id`
+
+```
+python upload_transkribus.py \
+--xml_path='magister_dixit_xml/document_name'
+--username='Transkribus_username' \
+--password='Transkribus_password' \
+--collection_id='collection_id' \
+--document_id='document_id'
+```
+
+
