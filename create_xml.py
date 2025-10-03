@@ -12,16 +12,12 @@ def read_json(path):
     f = open(path)
     return json.load(f)
 
-def resize_polygon(polygon, orig_size, new_size):
+def resize_to_a4(polygon, orig_size, a4_size=a4_size):
     orig_w, orig_h = orig_size
     a4_w, a4_h = a4_size
-    scale_x = a4_w / orig_w  # Width is scaled
-    new_h = orig_h * scale_x  # New image height after width scaling
-    # Compute padding added on top and bottom
-    padding_y = (a4_h - new_h) / 2
-    # Transform each point
-    new_polygon = [(x * scale_x, y * scale_x + padding_y) for x, y in polygon]
-    return new_polygon
+    scale_x = a4_w / orig_w
+    scale_y = a4_h / orig_h
+    return [(x * scale_x, y * scale_y) for x, y in polygon]
 
 
 def generate_page_xml(image_filename, image_width, image_height, lines_data, output_filename="output.xml"):
@@ -66,12 +62,12 @@ if __name__ == '__main__':
         for rep in ie_to_rep[ie]:
             print('ie + "_"+ rep', ie + "_"+ rep)
             candidate_output = os.path.join(args.segment_path, ie + "_"+ rep, args.output_path_texts)
-            if not os.path.exists(candidate_output):
-                print(f"Skipping {candidate_output} (does not exists).")
-                continue
-            else:
-                texts = read_json(candidate_output)
-            # texts = read_json(os.path.join(args.segment_path, args.output_path_texts))
+            # if not os.path.exists(candidate_output):
+            #     print(f"Skipping {candidate_output} (does not exists).")
+            #     continue
+            # else:
+            #     texts = read_json(candidate_output)
+            texts = read_json(os.path.join(args.segment_path,ie + "_"+ rep, args.output_path_texts))
 
             output_path = os.path.join(args.save_path, f"{ie}_{rep}")
             if os.path.exists(output_path):
@@ -86,9 +82,8 @@ if __name__ == '__main__':
             for idx, image_name in tqdm(enumerate(image_names)):
                 # if idx>0:break
                 jpg_path = os.path.join(args.images_path, ie+'_'+rep, image_name)
-                original_size = np.array(Image.open(jpg_path)).shape
-                orig_w = original_size[0]
-                orig_h = original_size[1]
+                scanned_page = Image.open(jpg_path)
+                orig_w, orig_h = scanned_page.size
                 image_name_split = image_name[:-4]
                 lines_data = []
                 for line_name in texts.keys():
@@ -96,7 +91,7 @@ if __name__ == '__main__':
                     if image_name_split == line_name_split:
                         polygon = polygons[line_name]
                         if args.upload_transkirbus==1:
-                            polygon = resize_polygon(polygon, (original_size[1], original_size[0]), a4_size)
+                            polygon = resize_to_a4(polygon, (orig_w, orig_h))
                         polygon = [str(int(i[0]))+','+str(int(i[1])) for i in polygon]
                         polygon = ' '.join(polygon)
                         temp = (line_name, polygon, texts[line_name][0])
