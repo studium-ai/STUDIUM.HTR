@@ -97,7 +97,7 @@ if __name__ == '__main__':
                         temp = (line_name, polygon, texts[line_name][0])
                         lines_data.append(temp)
                 if len(lines_data)> 0:
-                    XML_FILE_PATH = os.path.join(output_path, image_name_split+'.xml')
+                    XML_FILE_PATH = os.path.join(output_path, str(idx)+'_'+image_name_split+'.xml')
                     if args.upload_transkirbus == 1:
                         generate_page_xml(image_name, a4_size[0], a4_size[1], lines_data, XML_FILE_PATH)
                     else:
