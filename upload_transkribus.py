@@ -1,8 +1,12 @@
 
-import requests, os, argparse
+import requests, os, argparse, re
 from xml.etree import ElementTree
 from tqdm import tqdm
 from pathlib import Path
+
+def natural_key(s):
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(r'(\d+)', s)]
 a4_size = (2479, 3508)
 
 if __name__ == '__main__':
@@ -15,6 +19,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     xmls = os.listdir(args.xml_path)
+    xmls = sorted(xmls, key=natural_key)
     login_url = 'https://transkribus.eu/TrpServer/rest/auth/login'
     login_response = requests.post(login_url, data={'user': args.username, 'pw': args.password})
 
