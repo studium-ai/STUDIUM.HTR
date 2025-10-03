@@ -12,13 +12,16 @@ def read_json(path):
     f = open(path)
     return json.load(f)
 
-def resize_to_a4(polygon, orig_size, a4_size=a4_size):
+def resize_to_a4(polygon, orig_size, new_size=a4_size):
     orig_w, orig_h = orig_size
-    a4_w, a4_h = a4_size
-    scale_x = a4_w / orig_w
-    scale_y = a4_h / orig_h
-    return [(x * scale_x, y * scale_y) for x, y in polygon]
-
+    a4_w, a4_h = new_size
+    scale_x = a4_w / orig_w  # Width is scaled
+    new_h = orig_h * scale_x  # New image height after width scaling
+    # Compute padding added on top and bottom
+    padding_y = (a4_h - new_h) / 2
+    # Transform each point
+    new_polygon = [(x * scale_x, y * scale_x + padding_y) for x, y in polygon]
+    return new_polygon
 
 def generate_page_xml(image_filename, image_width, image_height, lines_data, output_filename="output.xml"):
     ns = "http://schema.primaresearch.org/PAGE/gts/pagecontent/2013-07-15"
